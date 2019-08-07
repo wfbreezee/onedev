@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
-import org.apache.wicket.ajax.markup.html.AjaxLink;
 import org.apache.wicket.markup.ComponentTag;
 import org.apache.wicket.markup.head.CssHeaderItem;
 import org.apache.wicket.markup.head.IHeaderResponse;
@@ -87,10 +86,6 @@ public class CommitStatusPanel extends Panel {
 		
 		DropdownLink statusLink = new DropdownLink("status") {
 
-			private boolean isShowJobDetail(WebMarkupContainer jobItem) {
-				return (boolean) jobItem.getDefaultModelObject();
-			}
-			
 			@Override
 			protected Component newContent(String id, FloatingPanel dropdown) {
 				Fragment fragment = new Fragment(id, "detailFrag", CommitStatusPanel.this);
@@ -98,15 +93,9 @@ public class CommitStatusPanel extends Panel {
 				RepeatingView jobsView = new RepeatingView("jobs");
 				fragment.add(jobsView);
 				for (Job job: jobsModel.getObject()) {
-					WebMarkupContainer jobItem = new WebMarkupContainer(jobsView.newChildId(), Model.of(false));
+					WebMarkupContainer jobItem = new WebMarkupContainer(jobsView.newChildId());
 					Status status = getProject().getCommitStatus(commitId).get(job.getName());
-					AjaxLink<Void> detailLink = new AjaxLink<Void>("jobDetailToggle") {
-
-						@Override
-						public void onClick(AjaxRequestTarget target) {
-							jobItem.setDefaultModelObject(!isShowJobDetail(jobItem));
-							target.add(jobItem);
-						}
+					jobItem.add(new BuildStatusIcon("jobStatus", Model.of(status)) {
 
 						@Override
 						protected void onComponentTag(ComponentTag tag) {
@@ -117,16 +106,14 @@ public class CommitStatusPanel extends Panel {
 									title = "Some builds in job are "; 
 								else
 									title = "Builds in job are "; 
-								title += status.getDisplayName().toLowerCase() + ", click to toggle details";
+								title += status.getDisplayName().toLowerCase();
 							} else {
 								title = "No builds in job";
 							}
 							tag.put("title", title);
 						}
 						
-					};
-					detailLink.add(new BuildStatusIcon("icon", Model.of(status)));
-					jobItem.add(detailLink);
+					});
 					
 					Link<Void> defLink = new JobDefLink("jobDef", getProject(), commitId, job.getName());
 					defLink.add(new Label("label", job.getName()));
@@ -148,7 +135,7 @@ public class CommitStatusPanel extends Panel {
 						@Override
 						protected void onConfigure() {
 							super.onConfigure();
-							setVisible(status != null && isShowJobDetail(jobItem));
+							setVisible(status != null);
 						}
 						
 					});
@@ -163,15 +150,7 @@ public class CommitStatusPanel extends Panel {
 							return builds;
 						}
 						
-					}) {
-
-						@Override
-						protected void onConfigure() {
-							super.onConfigure();
-							setVisible(isShowJobDetail(jobItem));
-						}
-						
-					});
+					}));
 					
 					jobItem.setOutputMarkupId(true);
 					jobsView.add(jobItem);
@@ -207,8 +186,6 @@ public class CommitStatusPanel extends Panel {
 			
 		});
 		add(statusLink);
-		
-		add(new RunJobLink("runJob", getProject(), commitId, null));
 	}
 
 	@Override

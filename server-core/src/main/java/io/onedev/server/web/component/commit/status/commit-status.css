@@ -7,7 +7,7 @@
 .commit-status-detail>.job>.head {
     padding: 4px 0;
 }
-.commit-status-detail>.job>.head>.detail {
+.commit-status-detail>.job>.head>.status {
     margin-right: 8px;
 }
 .commit-status-detail>.job>.head>.def {

@@ -1,13 +1,11 @@
 package io.onedev.server.web.component.job;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
-import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
 import org.apache.wicket.model.IModel;
@@ -23,7 +21,9 @@ import io.onedev.server.ci.job.param.JobParam;
 import io.onedev.server.model.Build;
 import io.onedev.server.model.Project;
 import io.onedev.server.security.SecurityUtils;
-import io.onedev.server.web.component.modal.ModalPanel;
+import io.onedev.server.util.inputspec.InputContext;
+import io.onedev.server.util.inputspec.InputSpec;
+import io.onedev.server.web.component.beaneditmodal.BeanEditModalPanel;
 import io.onedev.server.web.model.EntityModel;
 import io.onedev.server.web.page.project.builds.detail.BuildLogPage;
 
@@ -36,7 +36,7 @@ public class RunJobLink extends AjaxLink<Void> {
 	
 	private final String jobName;
 	
-	public RunJobLink(String componentId, Project project, ObjectId commitId, @Nullable String jobName) {
+	public RunJobLink(String componentId, Project project, ObjectId commitId, String jobName) {
 		super(componentId);
 		
 		this.projectModel = new EntityModel<Project>(project);
@@ -51,35 +51,39 @@ public class RunJobLink extends AjaxLink<Void> {
 	@Override
 	public void onClick(AjaxRequestTarget target) {
 		CISpec ciSpec = Preconditions.checkNotNull(getProject().getCISpec(commitId));
-		Job job;
-		if (jobName != null) 
-			job = Preconditions.checkNotNull(ciSpec.getJobMap().get(jobName));
-		else if (ciSpec.getJobs().size() == 1)
-			job = ciSpec.getJobs().iterator().next();
-		else
-			job = null;
-		if (job == null || !job.getParamSpecs().isEmpty()) {
-			new ModalPanel(target) {
+		Job job = Preconditions.checkNotNull(ciSpec.getJobMap().get(jobName));
+		if (!job.getParamSpecs().isEmpty()) {
+			Serializable paramBean;
+			try {
+				paramBean = JobParam.defineBeanClass(job.getParamSpecs()).newInstance();
+			} catch (InstantiationException | IllegalAccessException e) {
+				throw new RuntimeException(e);
+			}
+			
+			new ParamEditModalPanel(target, paramBean) {
 
 				@Override
-				protected Component newContent(String id) {
-					return new JobParamEditPanel(id, job) {
+				protected void onSave(AjaxRequestTarget target, Serializable bean) {
+					Map<String, List<String>> paramMap = JobParam.getParamMap(
+							job, bean, job.getParamSpecMap().keySet());
+					Build build = OneDev.getInstance(JobManager.class).submit(getProject(), 
+							commitId, job.getName(), paramMap, SecurityUtils.getUser());
+					setResponsePage(BuildLogPage.class, BuildLogPage.paramsOf(build, null));
+				}
 
-						@Override
-						protected void onSave(Job job, Serializable paramBean) {
-							Map<String, List<String>> paramMap = JobParam.getParamMap(
-									job, paramBean, job.getParamSpecMap().keySet());
-							Build build = OneDev.getInstance(JobManager.class).submit(getProject(), 
-									commitId, job.getName(), paramMap, SecurityUtils.getUser());
-							setResponsePage(BuildLogPage.class, BuildLogPage.paramsOf(build, null));
-						}
+				@Override
+				public List<String> getInputNames() {
+					return new ArrayList<>(job.getParamSpecMap().keySet());
+				}
 
-						@Override
-						protected Project getProject() {
-							return RunJobLink.this.getProject();
-						}
-						
-					};
+				@Override
+				public InputSpec getInputSpec(String inputName) {
+					return Preconditions.checkNotNull(job.getParamSpecMap().get(inputName));
+				}
+
+				@Override
+				public void validateName(String inputName) {
+					throw new UnsupportedOperationException();
 				}
 				
 			};
@@ -100,6 +104,14 @@ public class RunJobLink extends AjaxLink<Void> {
 	protected void onDetach() {
 		projectModel.detach();
 		super.onDetach();
+	}
+
+	private abstract class ParamEditModalPanel extends BeanEditModalPanel implements InputContext {
+
+		public ParamEditModalPanel(AjaxRequestTarget target, Serializable bean) {
+			super(target, bean);
+		}
+
 	}
 	
 }
