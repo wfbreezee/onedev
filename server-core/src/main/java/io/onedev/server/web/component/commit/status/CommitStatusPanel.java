@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.markup.ComponentTag;
@@ -19,7 +21,6 @@ import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.markup.repeater.RepeatingView;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.LoadableDetachableModel;
-import org.apache.wicket.model.Model;
 import org.eclipse.jgit.lib.ObjectId;
 
 import com.google.common.collect.Lists;
@@ -95,31 +96,12 @@ public class CommitStatusPanel extends Panel {
 				for (Job job: jobsModel.getObject()) {
 					WebMarkupContainer jobItem = new WebMarkupContainer(jobsView.newChildId());
 					Status status = getProject().getCommitStatus(commitId).get(job.getName());
-					jobItem.add(new BuildStatusIcon("jobStatus", Model.of(status)) {
-
-						@Override
-						protected void onComponentTag(ComponentTag tag) {
-							super.onComponentTag(tag);
-							String title;
-							if (status != null) {
-								if (status != Status.SUCCESSFUL)
-									title = "Some builds in job are "; 
-								else
-									title = "Builds in job are "; 
-								title += status.getDisplayName().toLowerCase();
-							} else {
-								title = "No builds in job";
-							}
-							tag.put("title", title);
-						}
-						
-					});
 					
-					Link<Void> defLink = new JobDefLink("jobDef", getProject(), commitId, job.getName());
+					Link<Void> defLink = new JobDefLink("name", getProject(), commitId, job.getName());
 					defLink.add(new Label("label", job.getName()));
 					jobItem.add(defLink);
 					
-					jobItem.add(new RunJobLink("runJob", getProject(), commitId, job.getName()) {
+					jobItem.add(new RunJobLink("run", getProject(), commitId, job.getName()) {
 
 						@Override
 						public void onClick(AjaxRequestTarget target) {
@@ -140,7 +122,7 @@ public class CommitStatusPanel extends Panel {
 						
 					});
 					
-					jobItem.add(new SimpleBuildListPanel("jobDetail", new LoadableDetachableModel<List<Build>>() {
+					jobItem.add(new SimpleBuildListPanel("detail", new LoadableDetachableModel<List<Build>>() {
 
 						@Override
 						protected List<Build> load() {
@@ -162,6 +144,8 @@ public class CommitStatusPanel extends Panel {
 			@Override
 			protected void onComponentTag(ComponentTag tag) {
 				super.onComponentTag(tag);
+				
+				String cssClasses = "commit-status ";
 				String title;
 				Build.Status status = statusModel.getObject();
 				if (status != null) {
@@ -173,6 +157,9 @@ public class CommitStatusPanel extends Panel {
 				} else {
 					title = "No builds";
 				}
+				if (getCssClasses() != null)
+					cssClasses += getCssClasses();
+				tag.put("class", cssClasses);
 				tag.put("title", title);
 			}
 			
@@ -206,6 +193,11 @@ public class CommitStatusPanel extends Panel {
 	public void renderHead(IHeaderResponse response) {
 		super.renderHead(response);
 		response.render(CssHeaderItem.forReference(new CommitStatusCssResourceReference()));
+	}
+	
+	@Nullable
+	protected String getCssClasses() {
+		return null;
 	}
 	
 }
