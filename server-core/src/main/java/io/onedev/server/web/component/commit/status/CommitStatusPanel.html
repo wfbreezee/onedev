@@ -1,5 +1,8 @@
 <wicket:panel>
-    <a wicket:id="link" class="commit-status"><span wicket:id="icon"></span></a>
+	<span class="btn-group">
+	    <a wicket:id="status" class="commit-status btn btn-default"><span wicket:id="icon"></span> <i class="fa fa-angle-down"></i></a>
+		<a wicket:id="runJob" class="btn btn-default" title="Run job"><i class="fa fa-play"></i></a>
+	</span>
     <wicket:fragment wicket:id="detailFrag">
         <div class="commit-status-detail">
             <div wicket:id="jobs" class="job">

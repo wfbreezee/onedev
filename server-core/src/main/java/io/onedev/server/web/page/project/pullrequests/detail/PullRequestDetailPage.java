@@ -531,6 +531,12 @@ public abstract class PullRequestDetailPage extends ProjectPage {
 						Project project = request.getTargetProject();
 						String jobName = item.getModelObject();
 
+						Status status = Status.getOverallStatus(request.getPullRequestBuilds()
+								.stream()
+								.filter(it->it.getBuild().getJobName().equals(jobName))
+								.map(it->it.getBuild().getStatus())
+								.collect(Collectors.toSet()));
+						
 						WebMarkupContainer link = new DropdownLink("status") {
 
 							@Override
@@ -562,19 +568,10 @@ public abstract class PullRequestDetailPage extends ProjectPage {
 									
 								};
 							}
-							
-						};
-						
-						Status status = Status.getOverallStatus(request.getPullRequestBuilds()
-								.stream()
-								.filter(it->it.getBuild().getJobName().equals(jobName))
-								.map(it->it.getBuild().getStatus())
-								.collect(Collectors.toSet()));
-						
-						link.add(new BuildStatusIcon("icon", Model.of(status)) {
 
 							@Override
-							protected String getTooltip(Status status) {
+							protected void onComponentTag(ComponentTag tag) {
+								super.onComponentTag(tag);
 								String title;
 								if (status != null) {
 									if (status != Status.SUCCESSFUL)
@@ -585,10 +582,12 @@ public abstract class PullRequestDetailPage extends ProjectPage {
 								} else {
 									title = "No builds";
 								}
-								return title;
+								tag.put("title", title);
 							}
-
-						});
+							
+						};
+						
+						link.add(new BuildStatusIcon("icon", Model.of(status)));
 						item.add(link);
 						
 						link = new JobDefLink("name", project, commitId, jobName);

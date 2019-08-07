@@ -8,6 +8,7 @@ import java.util.List;
 import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
+import org.apache.wicket.markup.ComponentTag;
 import org.apache.wicket.markup.head.CssHeaderItem;
 import org.apache.wicket.markup.head.IHeaderResponse;
 import org.apache.wicket.markup.html.WebMarkupContainer;
@@ -60,6 +61,15 @@ public class CommitStatusPanel extends Panel {
 		
 	};
 	
+	private IModel<Status> statusModel = new LoadableDetachableModel<Status>() {
+
+		@Override
+		protected Status load() {
+			return Status.getOverallStatus(getProject().getCommitStatus(commitId).values());
+		}
+		
+	};
+	
 	public CommitStatusPanel(String id, Project project, ObjectId commitId) {
 		super(id);
 		
@@ -75,7 +85,7 @@ public class CommitStatusPanel extends Panel {
 	protected void onInitialize() {
 		super.onInitialize();
 		
-		DropdownLink link = new DropdownLink("link") {
+		DropdownLink statusLink = new DropdownLink("status") {
 
 			private boolean isShowJobDetail(WebMarkupContainer jobItem) {
 				return (boolean) jobItem.getDefaultModelObject();
@@ -89,6 +99,7 @@ public class CommitStatusPanel extends Panel {
 				fragment.add(jobsView);
 				for (Job job: jobsModel.getObject()) {
 					WebMarkupContainer jobItem = new WebMarkupContainer(jobsView.newChildId(), Model.of(false));
+					Status status = getProject().getCommitStatus(commitId).get(job.getName());
 					AjaxLink<Void> detailLink = new AjaxLink<Void>("jobDetailToggle") {
 
 						@Override
@@ -96,13 +107,10 @@ public class CommitStatusPanel extends Panel {
 							jobItem.setDefaultModelObject(!isShowJobDetail(jobItem));
 							target.add(jobItem);
 						}
-						
-					};
-					Status status = getProject().getCommitStatus(commitId).get(job.getName());
-					detailLink.add(new BuildStatusIcon("icon", Model.of(status)) {
-						
+
 						@Override
-						protected String getTooltip(Status status) {
+						protected void onComponentTag(ComponentTag tag) {
+							super.onComponentTag(tag);
 							String title;
 							if (status != null) {
 								if (status != Status.SUCCESSFUL)
@@ -113,10 +121,11 @@ public class CommitStatusPanel extends Panel {
 							} else {
 								title = "No builds in job";
 							}
-							return title;
+							tag.put("title", title);
 						}
 						
-					});
+					};
+					detailLink.add(new BuildStatusIcon("icon", Model.of(status)));
 					jobItem.add(detailLink);
 					
 					Link<Void> defLink = new JobDefLink("jobDef", getProject(), commitId, job.getName());
@@ -170,20 +179,12 @@ public class CommitStatusPanel extends Panel {
 				
 				return fragment;
 			}
-			
-		};
-		link.add(new BuildStatusIcon("icon", new LoadableDetachableModel<Status>() {
 
 			@Override
-			protected Status load() {
-				return Status.getOverallStatus(getProject().getCommitStatus(commitId).values());
-			}
-			
-		}) {
-			
-			@Override
-			protected String getTooltip(Status status) {
+			protected void onComponentTag(ComponentTag tag) {
+				super.onComponentTag(tag);
 				String title;
+				Build.Status status = statusModel.getObject();
 				if (status != null) {
 					if (status != Status.SUCCESSFUL)
 						title = "Some builds are "; 
@@ -193,22 +194,28 @@ public class CommitStatusPanel extends Panel {
 				} else {
 					title = "No builds";
 				}
-				return title;
+				tag.put("title", title);
 			}
-
+			
+		};
+		statusLink.add(new BuildStatusIcon("icon", statusModel) {
+			
 			@Override
 			protected Collection<String> getWebSocketObservables() {
 				return Lists.newArrayList("commit-status:" + getProject().getId() + ":" + commitId.name());
 			}
 			
 		});
-		add(link);
+		add(statusLink);
+		
+		add(new RunJobLink("runJob", getProject(), commitId, null));
 	}
 
 	@Override
 	protected void onDetach() {
 		projectModel.detach();
 		jobsModel.detach();
+		statusModel.detach();
 		super.onDetach();
 	}
 

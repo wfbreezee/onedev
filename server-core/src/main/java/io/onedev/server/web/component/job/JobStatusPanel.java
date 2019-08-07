@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.apache.wicket.Component;
+import org.apache.wicket.markup.ComponentTag;
 import org.apache.wicket.markup.head.CssHeaderItem;
 import org.apache.wicket.markup.head.IHeaderResponse;
 import org.apache.wicket.markup.html.link.BookmarkablePageLink;
@@ -92,12 +93,12 @@ public class JobStatusPanel extends Panel {
 
 				};
 			}
-			
-		};
-		link.add(new BuildStatusIcon("icon", statusModel) {
 
 			@Override
-			protected String getTooltip(Status status) {
+			protected void onComponentTag(ComponentTag tag) {
+				super.onComponentTag(tag);
+				
+				Build.Status status = statusModel.getObject();
 				String title;
 				if (status != null) {
 					if (status != Status.SUCCESSFUL)
@@ -108,8 +109,12 @@ public class JobStatusPanel extends Panel {
 				} else {
 					title = "No builds";
 				}
-				return title;
+				tag.put("title", title);
+				
 			}
+			
+		};
+		link.add(new BuildStatusIcon("icon", statusModel) {
 
 			@Override
 			protected Collection<String> getWebSocketObservables() {
