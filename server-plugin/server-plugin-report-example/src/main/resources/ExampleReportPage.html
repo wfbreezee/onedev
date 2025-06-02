@@ -1,0 +1,33 @@
+<wicket:extend>  
+    <div wicket:id="report"></div>  
+      
+    <wicket:fragment wicket:id="validFrag">  
+        <div class="example-report">  
+            <div class="card">  
+                <div class="card-body">  
+                    <h5 class="card-title">Example Report</h5>  
+                    <table class="table">  
+                        <thead>  
+                            <tr>  
+                                <th>Name</th>  
+                                <th>Value</th>  
+                            </tr>  
+                        </thead>  
+                        <tbody>  
+                            <tr wicket:id="items">  
+                                <td wicket:id="name"></td>  
+                                <td wicket:id="value"></td>  
+                            </tr>  
+                        </tbody>  
+                    </table>  
+                </div>  
+            </div>  
+        </div>  
+    </wicket:fragment>  
+      
+    <wicket:fragment wicket:id="invalidFrag">  
+        <div class="alert alert-warning">  
+            No example report published for this build.  
+        </div>  
+    </wicket:fragment>  
+</wicket:extend>

@@ -35,6 +35,9 @@ public class WicketUtils {
 	}
 	
 	public static boolean isSubscriptionActive() {
+		return true;
+		
+		/* 
 		var requestCycle = RequestCycle.get();
 		if (requestCycle == null)
 			throw new IllegalStateException("No active request cycle");
@@ -44,6 +47,8 @@ public class WicketUtils {
 			requestCycle.setMetaData(SubscriptionActiveKey.INSTANCE, subscriptionActive);
 		}
 		return subscriptionActive;
+		
+		*/
 	}
 
 	@Nullable

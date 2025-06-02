@@ -1,0 +1,19 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+   "version": "0.2.0",
+      "configurations": [ 
+              {   
+                  "type": "java",   
+                  "name": "Debug OneDev Server",   
+                  "request": "launch",   
+                  "mainClass": "io.onedev.commons.bootstrap.Bootstrap",   
+                  "projectName": "server-product",   
+                  "args": "",   
+                  "vmArgs": "-Xmx2048m -XX:MaxMetaspaceSize=512m"   
+           
+               }   
+     
+        ]  
+}
